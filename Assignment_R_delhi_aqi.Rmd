@@ -1,0 +1,142 @@
+---
+title: "R_Assignment"
+output: pdf_document
+date: "2023-06-08"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+##read file and create object
+```{r read xl}
+library(readxl)
+delhi_aqi <- read_excel(("/Users/sushobhanjena/delhi_aqi.xlsx"))
+```
+
+
+## Q1 Dataset Structure
+```{r delhi_aqi struct}
+str(delhi_aqi)
+```
+
+
+## Q2 Dataset columns
+```{r delhi_aqi col}
+colnames(delhi_aqi)
+```
+## Q3 Top 15
+```{r delhi_aqi 15}
+head(delhi_aqi, n = 15)
+```
+## Q4 UDF Floor 
+```{r delhi_aqi udf}
+library(purrr)
+ get_floor <- function(x) {
+     x = floor(x)
+ }
+delhi_aqi$pm_2_5_floor <- map_dbl(delhi_aqi$pm2_5, get_floor)
+head(delhi_aqi, n=5)
+```
+## Q5 Filter rows ##check
+```{r delhi_aqi filter}
+library(purrr)
+aqi_no_filter = delhi_aqi %>% filter('no' > 0)
+dim(aqi_no_filter)
+```
+## Q6 New df 
+```{r delhi_aqi new df}
+sub1 <- delhi_aqi[, c(1, 2, 8)]
+sub1$total_co_pm10 <- sub1$co + sub1$pm10
+sub1 <- sub1[, !colnames(sub1) %in% c("co", "pm10")]
+delhi_aqi <- merge(delhi_aqi, sub1, by = "date", suffixes = c("_delhi_aqi","_sub1"))
+delhi_aqi
+#delhi_aqi[!duplicated(lapply(delhi_aqi, summary))]
+```
+
+## Q7 remove missing vals
+```{r delhi_aqi w/o NAs}
+ na_rows <- delhi_aqi[is.na(delhi_aqi$co), ]
+print(na_rows)
+```
+## Q8 Remove duplicates
+```{r delhi_aqi remove dups}
+aqi = unique(delhi_aqi)
+dim(aqi)
+```
+## Q9 order by desc
+```{r delhi_aqi desc}
+library(dplyr)
+duplicate_cols <- duplicated(names(aqi))
+aqi_no_dup_col <- aqi [, !duplicate_cols]
+aqi_desc <- aqi_no_dup_col %>% arrange(desc(date))
+head(aqi_desc, n = 20)
+```
+
+## Q10 Rename Columns
+```{r delhi_aqi rename}
+names(aqi_desc)[names(aqi_desc) == "date"] <- "DATE"
+names(aqi_desc)[names(aqi_desc) == "co"] <- "CO"
+colnames(aqi_desc)
+```
+## Q11 New column no_perc
+```{r delhi_aqi no_perc}
+aqi_desc$no_perc <-  aqi_desc$no * 100 
+aqi_desc
+```
+
+## Q12 number generator
+```{r delhi_aqi gen}
+set.seed(42)
+train_proportion <- 0.8 
+train_size <- floor(train_proportion * length(aqi_desc))
+aqi_train_set <- sample(aqi_desc ,train_size, replace = FALSE)
+head(aqi_train_set)
+```
+## Q13 Summary
+```{r delhi_aqi summary}
+summary(aqi_desc)
+```
+
+## Q14 Mean, Median, Mode and Range
+```{r delhi_aqi mean,med,mod,rng}
+aqi_meano3 <- mean(aqi_desc$o3) ##mean
+aqi_medo3 <- median(aqi_desc$o3) ##median
+aqi_modo3 <- mode(aqi_desc$o3) ##mode
+aqi_r03 <- range(aqi_desc$o3) ## range
+aqi_meano3
+aqi_medo3
+aqi_modo3
+aqi_r03
+```
+## Q15 Scatter plot
+```{r delhi_aqi scatter plot}
+Sys.setenv(LANGUAGE = "en")
+library(ggplot2)
+ggplot(data = aqi_desc, aes(y = no, x = DATE)) +
+     geom_point(stat = 'identity', size = 0.5, color = "steelblue", shape = 21) +
+     labs(x = "Month-Year", y = "NO (g/m3)", title = "NO level in air between December 2020 - January 2023")
+```
+## Q16 Bar plot
+```{r delhi_aqi bar plot}
+Sys.setenv(LANGUAGE = "en")
+library(ggplot2)
+ggplot(data = aqi_desc, aes(y = pm10, x = DATE)) +
+     geom_bar(stat = 'identity', fill = "steelblue") +
+     labs(x = "Month-Year", y = "pm10 (g/m3)", title = "pm10 level in air between December 2020 - January 2023")
+```
+## Q17 Linear regression
+```{r delhi_aqi lr}
+Y = aqi_desc[, "no"]
+X = aqi_desc[, "CO"]
+co_no_corr = cor(Y,X, method="pearson")
+co_no_corr
+```
+
+
